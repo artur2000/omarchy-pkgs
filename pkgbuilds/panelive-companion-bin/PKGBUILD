@@ -1,0 +1,52 @@
+# Maintainer: Clownfish Web Artur Cichosz <artur@clownfishweb.pl>
+# Upstream native binaries; Companion and the OBS helper remain separate packages.
+pkgbase=panelive-companion-bin
+pkgname=(panelive-companion-bin panelive-companion-obs-plugin-bin)
+pkgver=0.1.0beta.1
+pkgrel=1
+_tag=v0.1.0-beta.1
+_release=${_tag#v}
+pkgdesc='Secure mobile production control, monitoring and teleprompter'
+arch=('x86_64')
+url='https://github.com/Clownfish-Web/panelive-companion'
+license=('Apache-2.0')
+# makepkg resolves split-package dependencies before entering package functions.
+makedepends=('glibc>=2.43' 'libgcc' 'libstdc++' 'gtk4' 'libadwaita' 'libsecret'
+             'avahi' 'libpulse' 'libjpeg-turbo' 'glib2' 'dbus' 'hicolor-icon-theme'
+             'obs-studio>=30.0' 'qt6-base')
+options=('!strip' '!debug')
+source=("${url}/releases/download/${_tag}/panelive-companion-${_release}-omarchy-${CARCH}.pkg.tar.zst"
+        "${url}/releases/download/${_tag}/panelive-companion-obs-plugin-${_release}-omarchy-${CARCH}.pkg.tar.zst")
+noextract=("panelive-companion-${_release}-omarchy-${CARCH}.pkg.tar.zst"
+           "panelive-companion-obs-plugin-${_release}-omarchy-${CARCH}.pkg.tar.zst")
+sha256sums=('5d7893ac4b6574b50057824039e72ae67ef89b5232a75b09e1b754b7c3920810'
+            '615306ee2527274a06fe797e9680d539d416c5e0f530450263fd42008473af13')
+
+package_panelive-companion-bin() {
+  # The binary uses GLIBC_2.43; D-Bus is also a runtime service dependency.
+  depends=('glibc>=2.43' 'libgcc' 'libstdc++' 'gtk4' 'libadwaita' 'libsecret'
+           'avahi' 'libpulse' 'libjpeg-turbo' 'glib2' 'dbus' 'hicolor-icon-theme')
+  optdepends=('gnome-keyring: Secret Service credentials in a graphical session'
+              'quickshell: optional Omarchy operational bar widget'
+              'qt6-declarative: QML controls for the optional Omarchy widget'
+              'panelive-companion-obs-plugin-bin: OBS Program, Preview and monitor audio')
+  provides=("panelive-companion=${pkgver}")
+  conflicts=('panelive-companion')
+  # Extract only the filesystem payload, excluding upstream pacman metadata.
+  bsdtar -xf "${srcdir}/panelive-companion-${_release}-omarchy-${CARCH}.pkg.tar.zst" \
+    -C "${pkgdir}" usr
+  mv "${pkgdir}/usr/share/licenses/panelive-companion" \
+    "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+
+package_panelive-companion-obs-plugin-bin() {
+  pkgdesc='Headless OBS media helper for PaneLive Companion'
+  license=('GPL-2.0-or-later')
+  depends=('glibc' 'libgcc' 'libstdc++' 'obs-studio>=30.0' 'qt6-base')
+  provides=("panelive-companion-obs-plugin=${pkgver}")
+  conflicts=('panelive-companion-obs-plugin')
+  bsdtar -xf "${srcdir}/panelive-companion-obs-plugin-${_release}-omarchy-${CARCH}.pkg.tar.zst" \
+    -C "${pkgdir}" usr
+  mv "${pkgdir}/usr/share/licenses/panelive-companion-obs-plugin" \
+    "${pkgdir}/usr/share/licenses/${pkgname}"
+}
